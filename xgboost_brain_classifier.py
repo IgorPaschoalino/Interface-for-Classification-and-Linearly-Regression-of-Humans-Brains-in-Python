@@ -33,11 +33,11 @@ class BrainClassifier:
             model_path: Caminho para salvar/carregar o modelo
             scaler_path: Caminho para salvar/carregar o scaler
         """
-        self.model_path = model_path
+        self.model_path = model_path 
         self.scaler_path = scaler_path
         self.model = None
         self.scaler = None
-        self.label_encoder = None  # ADICIONADO
+        self.label_encoder = None  
         self.feature_names = None
         
     def train(self, csv_path='ventricle_descriptors_full.csv', target_column='Group', 
@@ -55,9 +55,8 @@ class BrainClassifier:
         print("TREINAMENTO DO MODELO XGBOOST")
         print("=" * 60)
         
-        # Características esperadas (nomes exatos do CSV)
-        expected_features = ['area', 'circularity', 'eccentricity', 
-                           'rectangularity', 'solidity', 'diameter']
+        # Características esperadas (No CSV)
+        expected_features = ['area', 'circularity', 'eccentricity', 'rectangularity', 'solidity', 'diameter']
         
         # Colunas que devem ser ignoradas
         ignore_columns = ['MRI ID', 'image_path']
@@ -75,8 +74,8 @@ class BrainClassifier:
             return None
         
         # Separar features e target
-        X = df.drop(columns=[target_column])
-        y = df[target_column]
+        X = df.drop(columns=[target_column])    # X = lista de caracteristicas que o modelo deve aprender
+        y = df[target_column]                   # y = lable de respostas
         
         # CODIFICAR AS CLASSES (STRINGS -> NÚMEROS)
         print(f"\n   Classes originais: {y.unique()}")
@@ -303,7 +302,7 @@ class BrainClassifier:
 
 
 def main():
-    """
+    """ 
     Função principal com menu interativo
     """
     classifier = BrainClassifier()

@@ -28,6 +28,10 @@ from itertools import combinations
 import warnings
 warnings.filterwarnings('ignore')
 
+# Imports para o classificador
+import joblib
+import os
+
 
 # ===============================================================================
 # CLASSES DE SEGMENTAÇÃO E ANÁLISE (DO CÓDIGO ORIGINAL)
@@ -322,6 +326,124 @@ class VentricleDescriptors:
 
 
 # ===============================================================================
+# CLASSIFICADOR E REGRESSOR XGBOOST
+# ===============================================================================
+
+class BrainClassifier:
+    """Classe para carregar e usar o modelo XGBoost treinado"""
+    
+    def __init__(self, model_path='modelo_xgboost.pkl', scaler_path='scaler.pkl', 
+                 label_encoder_path='label_encoder.pkl'):
+        self.model_path = model_path
+        self.scaler_path = scaler_path
+        self.label_encoder_path = label_encoder_path
+        self.model = None
+        self.scaler = None
+        self.label_encoder = None
+        self.feature_names = ['area', 'circularity', 'eccentricity', 
+                             'rectangularity', 'solidity', 'diameter']
+    
+    def load_model(self):
+        """Carrega modelo, scaler e label encoder salvos"""
+        if not os.path.exists(self.model_path):
+            raise FileNotFoundError(f"Modelo não encontrado: {self.model_path}")
+        
+        if not os.path.exists(self.scaler_path):
+            raise FileNotFoundError(f"Scaler não encontrado: {self.scaler_path}")
+        
+        if not os.path.exists(self.label_encoder_path):
+            raise FileNotFoundError(f"Label encoder não encontrado: {self.label_encoder_path}")
+        
+        self.model = joblib.load(self.model_path)
+        self.scaler = joblib.load(self.scaler_path)
+        self.label_encoder = joblib.load(self.label_encoder_path)
+        
+        return True
+    
+    def predict(self, descriptors):
+        """
+        Faz predição para descritores de uma imagem
+        
+        Args:
+            descriptors: Dict com os descritores morfológicos
+            
+        Returns:
+            Tupla (classe_predita, probabilidades_dict)
+        """
+        if self.model is None or self.scaler is None:
+            raise ValueError("Modelo não carregado. Use load_model() primeiro.")
+        
+        # Criar DataFrame com os descritores na ordem correta
+        features_df = pd.DataFrame([descriptors])[self.feature_names]
+        
+        # Normalizar
+        features_scaled = self.scaler.transform(features_df)
+        
+        # Predizer
+        prediction_encoded = self.model.predict(features_scaled)[0]
+        probabilities = self.model.predict_proba(features_scaled)[0]
+        
+        # Decodificar predição
+        prediction = self.label_encoder.inverse_transform([prediction_encoded])[0]
+        
+        # Criar dicionário de probabilidades
+        prob_dict = {}
+        for i, class_name in enumerate(self.label_encoder.classes_):
+            prob_dict[class_name] = probabilities[i]
+        
+        return prediction, prob_dict
+
+
+class BrainAgeRegressor:
+    """Classe para carregar e usar o modelo de regressão de idade"""
+    
+    def __init__(self, model_path='modelo_xgboost_age.pkl', scaler_path='scaler_age.pkl'):
+        self.model_path = model_path
+        self.scaler_path = scaler_path
+        self.model = None
+        self.scaler = None
+        self.feature_names = ['area', 'circularity', 'eccentricity', 
+                             'rectangularity', 'solidity', 'diameter']
+    
+    def load_model(self):
+        """Carrega modelo e scaler salvos"""
+        if not os.path.exists(self.model_path):
+            raise FileNotFoundError(f"Modelo não encontrado: {self.model_path}")
+        
+        if not os.path.exists(self.scaler_path):
+            raise FileNotFoundError(f"Scaler não encontrado: {self.scaler_path}")
+        
+        self.model = joblib.load(self.model_path)
+        self.scaler = joblib.load(self.scaler_path)
+        
+        return True
+    
+    def predict(self, descriptors):
+        """
+        Prediz idade para descritores de uma imagem
+        
+        Args:
+            descriptors: Dict com os descritores morfológicos
+            
+        Returns:
+            Idade predita (float)
+        """
+        if self.model is None or self.scaler is None:
+            raise ValueError("Modelo não carregado. Use load_model() primeiro.")
+        
+        # Criar DataFrame com os descritores na ordem correta
+        features_df = pd.DataFrame([descriptors])[self.feature_names]
+        
+        # Normalizar
+        features_scaled = self.scaler.transform(features_df)
+        
+        # Predizer
+        age_prediction = self.model.predict(features_scaled)[0]
+        
+        return age_prediction
+
+
+# ===============================================================================
 # INTERFACE GRÁFICA - WIDGETS CUSTOMIZADOS
 # ===============================================================================
 
@@ -491,8 +613,18 @@ class VentricleAnalysisGUI(QMainWindow):
         self.font_size = 10
         self.theme = "dark"
         
+        # Inicializar classificador
+        self.classifier = BrainClassifier()
+        self.classifier_loaded = False
+        
+        # Inicializar regressor de idade
+        self.regressor = BrainAgeRegressor()
+        self.regressor_loaded = False
+        
         self.init_ui()
         self.apply_theme()
+        self.try_load_classifier()
+        self.try_load_regressor()
         
     def init_ui(self):
         """Inicializa a interface"""
@@ -588,13 +720,15 @@ class VentricleAnalysisGUI(QMainWindow):
         self.segment_btn.setStyleSheet("padding: 15px; font-size: 12pt; font-weight: bold;")
         self.segment_btn.clicked.connect(self.run_segmentation)
         
-        self.classify_btn = QPushButton("Classificar (Em breve)")
+        self.classify_btn = QPushButton("Classificar")
         self.classify_btn.setEnabled(False)
-        self.classify_btn.setStyleSheet("padding: 15px; font-size: 12pt;")
+        self.classify_btn.setStyleSheet("padding: 15px; font-size: 12pt; font-weight: bold;")
+        self.classify_btn.clicked.connect(self.run_classification)
         
-        self.regress_btn = QPushButton("Regressão (Em breve)")
+        self.regress_btn = QPushButton("Predizer Idade")
         self.regress_btn.setEnabled(False)
-        self.regress_btn.setStyleSheet("padding: 15px; font-size: 12pt;")
+        self.regress_btn.setStyleSheet("padding: 15px; font-size: 12pt; font-weight: bold;")
+        self.regress_btn.clicked.connect(self.run_regression)
         
         button_layout.addWidget(self.segment_btn)
         button_layout.addWidget(self.classify_btn)
@@ -616,23 +750,13 @@ class VentricleAnalysisGUI(QMainWindow):
         self.segmentation_tab = self.create_segmentation_tab()
         self.tabs.addTab(self.segmentation_tab, "Segmentação")
         
-        # Tab 2: Classificação (placeholder)
-        classification_tab = QWidget()
-        class_layout = QVBoxLayout(classification_tab)
-        class_label = QLabel("Funcionalidade em desenvolvimento...")
-        class_label.setAlignment(Qt.AlignCenter)
-        class_label.setStyleSheet("font-size: 14pt; padding: 50px;")
-        class_layout.addWidget(class_label)
-        self.tabs.addTab(classification_tab, "Classificação")
+        # Tab 2: Classificação
+        self.classification_tab = self.create_classification_tab()
+        self.tabs.addTab(self.classification_tab, "Classificação")
         
-        # Tab 3: Regressão (placeholder)
-        regression_tab = QWidget()
-        regr_layout = QVBoxLayout(regression_tab)
-        regr_label = QLabel("Funcionalidade em desenvolvimento...")
-        regr_label.setAlignment(Qt.AlignCenter)
-        regr_label.setStyleSheet("font-size: 14pt; padding: 50px;")
-        regr_layout.addWidget(regr_label)
-        self.tabs.addTab(regression_tab, "Regressão")
+        # Tab 3: Regressão de Idade
+        self.regression_tab = self.create_regression_tab()
+        self.tabs.addTab(self.regression_tab, "Predição de Idade")
         
         layout.addWidget(self.tabs)
         
@@ -757,6 +881,187 @@ class VentricleAnalysisGUI(QMainWindow):
         
         return tab
     
+    def create_regression_tab(self):
+        """Cria tab de regressão de idade"""
+        tab = QWidget()
+        
+        # Scroll area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; }")
+        
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        
+        # Título
+        title = QLabel("Predição de Idade com XGBoost")
+        title.setStyleSheet("font-size: 14pt; font-weight: bold; padding: 15px;")
+        title.setAlignment(Qt.AlignCenter)
+        content_layout.addWidget(title)
+        
+        # Status do modelo
+        self.regressor_status_label = QLabel()
+        self.regressor_status_label.setAlignment(Qt.AlignCenter)
+        self.regressor_status_label.setStyleSheet("padding: 10px; border: 1px solid #555; background-color: #2a2a2a;")
+        self.update_regressor_status()
+        content_layout.addWidget(self.regressor_status_label)
+        
+        # Separador
+        line1 = QFrame()
+        line1.setFrameShape(QFrame.HLine)
+        line1.setStyleSheet("background-color: #555;")
+        content_layout.addWidget(line1)
+        
+        # Seção: Resultado da Predição
+        result_title = QLabel("Idade Predita")
+        result_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        content_layout.addWidget(result_title)
+        
+        self.regression_result_label = QLabel("Nenhuma predição realizada.\n\nClique em 'Predizer Idade' para começar.")
+        self.regression_result_label.setAlignment(Qt.AlignCenter)
+        self.regression_result_label.setStyleSheet("padding: 30px; border: 2px solid #555; background-color: #2a2a2a; font-size: 12pt;")
+        self.regression_result_label.setMinimumHeight(200)
+        content_layout.addWidget(self.regression_result_label)
+        
+        # Separador
+        line2 = QFrame()
+        line2.setFrameShape(QFrame.HLine)
+        line2.setStyleSheet("background-color: #555;")
+        content_layout.addWidget(line2)
+        
+        # Seção: Informações sobre a predição
+        info_title = QLabel("Sobre a Predição")
+        info_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        content_layout.addWidget(info_title)
+        
+        self.regression_info_label = QLabel()
+        self.regression_info_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.regression_info_label.setStyleSheet("padding: 20px; border: 1px solid #555; background-color: #2a2a2a;")
+        self.regression_info_label.setWordWrap(True)
+        info_text = "<p><b>Como funciona:</b></p>"
+        info_text += "<ul>"
+        info_text += "<li>O modelo analisa as características morfológicas do ventrículo lateral</li>"
+        info_text += "<li>Prediz a idade do paciente no momento do exame</li>"
+        info_text += "<li>Baseado em padrões de envelhecimento cerebral</li>"
+        info_text += "</ul>"
+        info_text += "<p><b>Importante:</b> Esta é uma estimativa baseada apenas em características morfológicas. "
+        info_text += "Não substitui avaliação médica profissional.</p>"
+        self.regression_info_label.setText(info_text)
+        content_layout.addWidget(self.regression_info_label)
+        
+        # Separador
+        line3 = QFrame()
+        line3.setFrameShape(QFrame.HLine)
+        line3.setStyleSheet("background-color: #555;")
+        content_layout.addWidget(line3)
+        
+        # Seção: Descritores Usados
+        desc_title = QLabel("Descritores Morfológicos Utilizados")
+        desc_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        content_layout.addWidget(desc_title)
+        
+        self.regression_descriptors_label = QLabel("Os descritores serão extraídos automaticamente da segmentação.")
+        self.regression_descriptors_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.regression_descriptors_label.setStyleSheet("padding: 15px; border: 1px solid #555; background-color: #2a2a2a;")
+        self.regression_descriptors_label.setWordWrap(True)
+        content_layout.addWidget(self.regression_descriptors_label)
+        
+        content_layout.addStretch()
+        
+        scroll.setWidget(content_widget)
+        
+        tab_layout = QVBoxLayout(tab)
+        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.addWidget(scroll)
+        
+        return tab
+    
+    def create_classification_tab(self):
+        """Cria tab de classificação"""
+        tab = QWidget()
+        
+        # Scroll area
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; }")
+        
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        
+        # Título
+        title = QLabel("Classificação com XGBoost")
+        title.setStyleSheet("font-size: 14pt; font-weight: bold; padding: 15px;")
+        title.setAlignment(Qt.AlignCenter)
+        content_layout.addWidget(title)
+        
+        # Status do modelo
+        self.model_status_label = QLabel()
+        self.model_status_label.setAlignment(Qt.AlignCenter)
+        self.model_status_label.setStyleSheet("padding: 10px; border: 1px solid #555; background-color: #2a2a2a;")
+        self.update_model_status()
+        content_layout.addWidget(self.model_status_label)
+        
+        # Separador
+        line1 = QFrame()
+        line1.setFrameShape(QFrame.HLine)
+        line1.setStyleSheet("background-color: #555;")
+        content_layout.addWidget(line1)
+        
+        # Seção: Resultado da Classificação
+        result_title = QLabel("Resultado da Classificação")
+        result_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        content_layout.addWidget(result_title)
+        
+        self.classification_result_label = QLabel("Nenhuma classificação realizada.\n\nClique em 'Classificar' para começar.")
+        self.classification_result_label.setAlignment(Qt.AlignCenter)
+        self.classification_result_label.setStyleSheet("padding: 30px; border: 2px solid #555; background-color: #2a2a2a; font-size: 12pt;")
+        self.classification_result_label.setMinimumHeight(200)
+        content_layout.addWidget(self.classification_result_label)
+        
+        # Separador
+        line2 = QFrame()
+        line2.setFrameShape(QFrame.HLine)
+        line2.setStyleSheet("background-color: #555;")
+        content_layout.addWidget(line2)
+        
+        # Seção: Probabilidades
+        prob_title = QLabel("Probabilidades por Classe")
+        prob_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        content_layout.addWidget(prob_title)
+        
+        self.probabilities_label = QLabel("Aguardando classificação...")
+        self.probabilities_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.probabilities_label.setStyleSheet("padding: 20px; border: 1px solid #555; background-color: #2a2a2a;")
+        self.probabilities_label.setWordWrap(True)
+        content_layout.addWidget(self.probabilities_label)
+        
+        # Separador
+        line3 = QFrame()
+        line3.setFrameShape(QFrame.HLine)
+        line3.setStyleSheet("background-color: #555;")
+        content_layout.addWidget(line3)
+        
+        # Seção: Descritores Usados
+        desc_title = QLabel("Descritores Morfológicos Utilizados")
+        desc_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        content_layout.addWidget(desc_title)
+        
+        self.classification_descriptors_label = QLabel("Os descritores serão extraídos automaticamente da segmentação.")
+        self.classification_descriptors_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.classification_descriptors_label.setStyleSheet("padding: 15px; border: 1px solid #555; background-color: #2a2a2a;")
+        self.classification_descriptors_label.setWordWrap(True)
+        content_layout.addWidget(self.classification_descriptors_label)
+        
+        content_layout.addStretch()
+        
+        scroll.setWidget(content_widget)
+        
+        tab_layout = QVBoxLayout(tab)
+        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.addWidget(scroll)
+        
+        return tab
+    
     def load_image(self):
         """Carrega imagem do disco"""
         file_filter = "Imagens (*.nii *.nii.gz *.png *.jpg *.jpeg);;NIfTI (*.nii *.nii.gz);;PNG (*.png);;JPEG (*.jpg *.jpeg)"
@@ -793,6 +1098,14 @@ class VentricleAnalysisGUI(QMainWindow):
             
             # Habilitar botão de segmentação
             self.segment_btn.setEnabled(True)
+            
+            # Habilitar classificação se modelo estiver carregado
+            if self.classifier_loaded:
+                self.classify_btn.setEnabled(True)
+            
+            # Habilitar regressão se modelo estiver carregado
+            if self.regressor_loaded:
+                self.regress_btn.setEnabled(True)
             
             # Resetar resultados
             self.reset_results()
@@ -1000,6 +1313,290 @@ class VentricleAnalysisGUI(QMainWindow):
             print(f"DEBUG: Erro em display_results: {e}")
             import traceback
             traceback.print_exc()
+    
+    def try_load_classifier(self):
+        """Tenta carregar o modelo de classificação"""
+        try:
+            self.classifier.load_model()
+            self.classifier_loaded = True
+            self.statusBar().showMessage("Modelo de classificação carregado com sucesso!", 3000)
+        except FileNotFoundError as e:
+            self.classifier_loaded = False
+            print(f"Modelo não encontrado: {e}")
+            self.statusBar().showMessage("Modelo de classificação não encontrado", 3000)
+        except Exception as e:
+            self.classifier_loaded = False
+            print(f"Erro ao carregar modelo: {e}")
+    
+    def try_load_regressor(self):
+        """Tenta carregar o modelo de regressão de idade"""
+        try:
+            self.regressor.load_model()
+            self.regressor_loaded = True
+            self.statusBar().showMessage("Modelo de regressão carregado com sucesso!", 3000)
+        except FileNotFoundError as e:
+            self.regressor_loaded = False
+            print(f"Modelo de regressão não encontrado: {e}")
+            self.statusBar().showMessage("Modelo de regressão não encontrado", 3000)
+        except Exception as e:
+            self.regressor_loaded = False
+            print(f"Erro ao carregar modelo de regressão: {e}")
+    
+    def update_model_status(self):
+        """Atualiza o status do modelo na interface"""
+        if self.classifier_loaded:
+            status_text = "<h3 style='color: #4CAF50;'>✓ Modelo Carregado</h3>"
+            status_text += "<p>O modelo XGBoost está pronto para classificar imagens.</p>"
+            status_text += f"<p><b>Classes disponíveis:</b> {', '.join(self.classifier.label_encoder.classes_)}</p>"
+        else:
+            status_text = "<h3 style='color: #f44336;'>✗ Modelo Não Encontrado</h3>"
+            status_text += "<p>Os arquivos do modelo não foram encontrados:</p>"
+            status_text += "<ul>"
+            status_text += "<li>modelo_xgboost.pkl</li>"
+            status_text += "<li>scaler.pkl</li>"
+            status_text += "<li>label_encoder.pkl</li>"
+            status_text += "</ul>"
+            status_text += "<p>Execute o treinamento primeiro ou coloque os arquivos no diretório.</p>"
+        
+        self.model_status_label.setText(status_text)
+    
+    def update_regressor_status(self):
+        """Atualiza o status do modelo de regressão na interface"""
+        if self.regressor_loaded:
+            status_text = "<h3 style='color: #4CAF50;'>✓ Modelo Carregado</h3>"
+            status_text += "<p>O modelo XGBoost Regressor está pronto para predizer idades.</p>"
+            status_text += "<p><b>Características usadas:</b> Descritores morfológicos do ventrículo</p>"
+        else:
+            status_text = "<h3 style='color: #f44336;'>✗ Modelo Não Encontrado</h3>"
+            status_text += "<p>Os arquivos do modelo não foram encontrados:</p>"
+            status_text += "<ul>"
+            status_text += "<li>modelo_xgboost_age.pkl</li>"
+            status_text += "<li>scaler_age.pkl</li>"
+            status_text += "</ul>"
+            status_text += "<p>Execute o treinamento primeiro ou coloque os arquivos no diretório.</p>"
+        
+        self.regressor_status_label.setText(status_text)
+    
+    def run_classification(self):
+        """Executa classificação da imagem atual"""
+        if not self.classifier_loaded:
+            QMessageBox.warning(self, "Modelo Não Carregado", 
+                              "O modelo de classificação não está disponível.\n\n"
+                              "Certifique-se de que os arquivos estão no diretório:\n"
+                              "- modelo_xgboost.pkl\n"
+                              "- scaler.pkl\n"
+                              "- label_encoder.pkl")
+            return
+        
+        if self.current_image is None:
+            QMessageBox.warning(self, "Sem Imagem", 
+                              "Carregue uma imagem primeiro!")
+            return
+        
+        try:
+            self.statusBar().showMessage("Classificando imagem...")
+            QApplication.processEvents()
+            
+            # Se ainda não temos descritores, fazer segmentação primeiro
+            if self.descriptors is None or self.descriptors.get('area', 0) == 0:
+                QMessageBox.information(self, "Segmentação Necessária",
+                                      "A imagem será segmentada primeiro para extrair os descritores.")
+                self.run_segmentation()
+                
+                # Verificar se a segmentação foi bem-sucedida
+                if self.descriptors is None or self.descriptors.get('area', 0) == 0:
+                    QMessageBox.warning(self, "Erro na Segmentação",
+                                      "Não foi possível segmentar o ventrículo.\n"
+                                      "A classificação não pode ser realizada.")
+                    return
+            
+            # Fazer predição
+            prediction, probabilities = self.classifier.predict(self.descriptors)
+            
+            # Exibir resultados
+            self.display_classification_results(prediction, probabilities)
+            
+            # Mudar para aba de classificação
+            self.tabs.setCurrentIndex(1)
+            
+            self.statusBar().showMessage("Classificação concluída!")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Erro na classificação:\n{str(e)}")
+            self.statusBar().showMessage("Erro na classificação")
+            import traceback
+            traceback.print_exc()
+    
+    def display_classification_results(self, prediction, probabilities):
+        """Exibe resultados da classificação"""
+        # Resultado principal
+        result_text = f"<h2 style='text-align: center; padding: 20px;'>Classificação: "
+        
+        # Colorir resultado baseado na classe
+        if prediction.lower() == 'demented':
+            result_text += f"<span style='color: #f44336; font-weight: bold;'>{prediction.upper()}</span>"
+        elif prediction.lower() == 'nondemented':
+            result_text += f"<span style='color: #4CAF50; font-weight: bold;'>{prediction.upper()}</span>"
+        else:
+            result_text += f"<span style='color: #FFC107; font-weight: bold;'>{prediction.upper()}</span>"
+        
+        result_text += "</h2>"
+        
+        # Confiança
+        confidence = probabilities[prediction] * 100
+        result_text += f"<p style='text-align: center; font-size: 14pt;'>Confiança: <b>{confidence:.2f}%</b></p>"
+        
+        self.classification_result_label.setText(result_text)
+        
+        # Probabilidades
+        prob_text = "<h3 style='margin: 0; padding: 10px 0;'>Probabilidades:</h3>"
+        prob_text += "<table style='width:100%; border-collapse: collapse; margin-top: 10px;'>"
+        prob_text += "<tr style='background-color: #444;'><th style='padding: 10px; border: 1px solid #666; text-align: left;'>Classe</th><th style='padding: 10px; border: 1px solid #666; text-align: right;'>Probabilidade</th><th style='padding: 10px; border: 1px solid #666;'>Barra</th></tr>"
+        
+        # Ordenar por probabilidade
+        sorted_probs = sorted(probabilities.items(), key=lambda x: x[1], reverse=True)
+        
+        for class_name, prob in sorted_probs:
+            prob_percent = prob * 100
+            bar_width = int(prob * 200)  # Barra de até 200px
+            
+            # Cor da barra
+            if class_name.lower() == 'demented':
+                bar_color = '#f44336'
+            elif class_name.lower() == 'nondemented':
+                bar_color = '#4CAF50'
+            else:
+                bar_color = '#FFC107'
+            
+            prob_text += f"<tr>"
+            prob_text += f"<td style='padding: 10px; border: 1px solid #666;'><b>{class_name}</b></td>"
+            prob_text += f"<td style='padding: 10px; border: 1px solid #666; text-align: right; font-family: monospace;'>{prob_percent:.2f}%</td>"
+            prob_text += f"<td style='padding: 10px; border: 1px solid #666;'><div style='background-color: {bar_color}; width: {bar_width}px; height: 20px; border-radius: 3px;'></div></td>"
+            prob_text += f"</tr>"
+        
+        prob_text += "</table>"
+        
+        self.probabilities_label.setText(prob_text)
+        
+        # Descritores usados
+        desc_text = "<h3 style='margin: 0; padding: 10px 0;'>Descritores Utilizados na Classificação:</h3>"
+        desc_text += "<table style='width:100%; border-collapse: collapse; margin-top: 10px;'>"
+        desc_text += "<tr style='background-color: #444;'><th style='padding: 10px; border: 1px solid #666; text-align: left;'>Descritor</th><th style='padding: 10px; border: 1px solid #666; text-align: right;'>Valor</th></tr>"
+        
+        desc_names = {
+            'area': 'Área (pixels)',
+            'circularity': 'Circularidade',
+            'eccentricity': 'Excentricidade',
+            'rectangularity': 'Retangularidade',
+            'solidity': 'Solidez',
+            'diameter': 'Diâmetro (pixels)'
+        }
+        
+        for key, name in desc_names.items():
+            value = self.descriptors.get(key, 0)
+            desc_text += f"<tr><td style='padding: 10px; border: 1px solid #666;'><b>{name}</b></td><td style='padding: 10px; border: 1px solid #666; text-align: right; font-family: monospace;'>{value:.4f}</td></tr>"
+        
+        desc_text += "</table>"
+        
+        self.classification_descriptors_label.setText(desc_text)
+    
+    def run_regression(self):
+        """Executa predição de idade da imagem atual"""
+        if not self.regressor_loaded:
+            QMessageBox.warning(self, "Modelo Não Carregado", 
+                              "O modelo de regressão não está disponível.\n\n"
+                              "Certifique-se de que os arquivos estão no diretório:\n"
+                              "- modelo_xgboost_age.pkl\n"
+                              "- scaler_age.pkl")
+            return
+        
+        if self.current_image is None:
+            QMessageBox.warning(self, "Sem Imagem", 
+                              "Carregue uma imagem primeiro!")
+            return
+        
+        try:
+            self.statusBar().showMessage("Predizendo idade...")
+            QApplication.processEvents()
+            
+            # Se ainda não temos descritores, fazer segmentação primeiro
+            if self.descriptors is None or self.descriptors.get('area', 0) == 0:
+                QMessageBox.information(self, "Segmentação Necessária",
+                                      "A imagem será segmentada primeiro para extrair os descritores.")
+                self.run_segmentation()
+                
+                # Verificar se a segmentação foi bem-sucedida
+                if self.descriptors is None or self.descriptors.get('area', 0) == 0:
+                    QMessageBox.warning(self, "Erro na Segmentação",
+                                      "Não foi possível segmentar o ventrículo.\n"
+                                      "A predição de idade não pode ser realizada.")
+                    return
+            
+            # Fazer predição
+            predicted_age = self.regressor.predict(self.descriptors)
+            
+            # Exibir resultados
+            self.display_regression_results(predicted_age)
+            
+            # Mudar para aba de regressão
+            self.tabs.setCurrentIndex(2)
+            
+            self.statusBar().showMessage("Predição de idade concluída!")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Erro na predição de idade:\n{str(e)}")
+            self.statusBar().showMessage("Erro na predição")
+            import traceback
+            traceback.print_exc()
+    
+    def display_regression_results(self, predicted_age):
+        """Exibe resultados da predição de idade"""
+        # Resultado principal
+        result_text = "<div style='text-align: center; padding: 30px;'>"
+        result_text += "<h2 style='margin-bottom: 10px;'>Idade Predita</h2>"
+        result_text += f"<h1 style='color: #2196F3; font-size: 48pt; margin: 20px 0;'>{predicted_age:.1f}</h1>"
+        result_text += "<h3>anos</h3>"
+        result_text += "</div>"
+        
+        # Adicionar faixa etária
+        if predicted_age < 30:
+            age_range = "Adulto Jovem"
+            icon = "👶"
+        elif predicted_age < 50:
+            age_range = "Adulto"
+            icon = "👨"
+        elif predicted_age < 70:
+            age_range = "Adulto Maduro"
+            icon = "👴"
+        else:
+            age_range = "Idoso"
+            icon = "👵"
+        
+        result_text += f"<p style='text-align: center; font-size: 14pt;'>{icon} <b>{age_range}</b></p>"
+        
+        self.regression_result_label.setText(result_text)
+        
+        # Descritores usados
+        desc_text = "<h3 style='margin: 0; padding: 10px 0;'>Descritores Utilizados na Predição:</h3>"
+        desc_text += "<table style='width:100%; border-collapse: collapse; margin-top: 10px;'>"
+        desc_text += "<tr style='background-color: #444;'><th style='padding: 10px; border: 1px solid #666; text-align: left;'>Descritor</th><th style='padding: 10px; border: 1px solid #666; text-align: right;'>Valor</th></tr>"
+        
+        desc_names = {
+            'area': 'Área (pixels)',
+            'circularity': 'Circularidade',
+            'eccentricity': 'Excentricidade',
+            'rectangularity': 'Retangularidade',
+            'solidity': 'Solidez',
+            'diameter': 'Diâmetro (pixels)'
+        }
+        
+        for key, name in desc_names.items():
+            value = self.descriptors.get(key, 0)
+            desc_text += f"<tr><td style='padding: 10px; border: 1px solid #666;'><b>{name}</b></td><td style='padding: 10px; border: 1px solid #666; text-align: right; font-family: monospace;'>{value:.4f}</td></tr>"
+        
+        desc_text += "</table>"
+        
+        self.regression_descriptors_label.setText(desc_text)
         
     def create_overlay(self):
         """Cria overlay da segmentação sobre a imagem original"""
@@ -1157,10 +1754,20 @@ class VentricleAnalysisGUI(QMainWindow):
             
     def reset_results(self):
         """Reseta visualizações de resultados"""
+        # Segmentação
         self.brain_mask_label.setText("Aguardando\nsegmentação")
         self.ventricle_mask_label.setText("Aguardando\nsegmentação")
         self.overlay_label.setText("Aguardando\nsegmentação")
         self.descriptors_label.setText("Nenhuma segmentação realizada")
+        
+        # Classificação
+        self.classification_result_label.setText("Nenhuma classificação realizada.\n\nClique em 'Classificar' para começar.")
+        self.probabilities_label.setText("Aguardando classificação...")
+        self.classification_descriptors_label.setText("Os descritores serão extraídos automaticamente da segmentação.")
+        
+        # Regressão
+        self.regression_result_label.setText("Nenhuma predição realizada.\n\nClique em 'Predizer Idade' para começar.")
+        self.regression_descriptors_label.setText("Os descritores serão extraídos automaticamente da segmentação.")
         
         # Limpar scatterplots
         for i in reversed(range(self.scatter_grid.count())): 
