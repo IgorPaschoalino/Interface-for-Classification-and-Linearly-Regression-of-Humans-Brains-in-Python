@@ -454,7 +454,7 @@ class ZoomableLabel(QLabel):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAlignment(Qt.AlignCenter)
-        self.setStyleSheet("border: 2px solid #555; background-color: #2b2b2b;")
+        self.setStyleSheet("border: 2px solid #555;")
         self.setMinimumSize(300, 300)
         self.setCursor(Qt.PointingHandCursor)
         
@@ -495,7 +495,7 @@ class ZoomDialog(QDialog):
         # Botão fechar
         close_btn = QPushButton("Fechar (ESC)")
         close_btn.clicked.connect(self.close)
-        close_btn.setStyleSheet("padding: 10px; font-size: 11pt;")
+        close_btn.setStyleSheet("padding: 10px;")
         
         layout.addWidget(scroll)
         layout.addWidget(close_btn)
@@ -610,7 +610,7 @@ class VentricleAnalysisGUI(QMainWindow):
         self.segmentation_mask = None
         self.brain_mask = None
         self.descriptors = None
-        self.font_size = 10
+        self.font_size = 15
         self.theme = "dark"
         
         # Inicializar classificador
@@ -694,12 +694,12 @@ class VentricleAnalysisGUI(QMainWindow):
         # Título
         title = QLabel("Visualização da Imagem")
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("font-size: 14pt; font-weight: bold; padding: 10px;")
+        title.setStyleSheet("font-weight: bold; padding: 10px;")
         layout.addWidget(title)
         
         # Botão carregar imagem
         self.load_btn = QPushButton("Carregar Imagem (NIfTI, PNG, JPG)")
-        self.load_btn.setStyleSheet("padding: 10px; font-size: 11pt;")
+        self.load_btn.setStyleSheet("padding: 10px;")
         self.load_btn.clicked.connect(self.load_image)
         layout.addWidget(self.load_btn)
         
@@ -717,17 +717,17 @@ class VentricleAnalysisGUI(QMainWindow):
         
         self.segment_btn = QPushButton("Segmentar Ventrículo")
         self.segment_btn.setEnabled(False)
-        self.segment_btn.setStyleSheet("padding: 15px; font-size: 12pt; font-weight: bold;")
+        self.segment_btn.setStyleSheet("padding: 15px;font-weight: bold;")
         self.segment_btn.clicked.connect(self.run_segmentation)
         
         self.classify_btn = QPushButton("Classificar")
         self.classify_btn.setEnabled(False)
-        self.classify_btn.setStyleSheet("padding: 15px; font-size: 12pt; font-weight: bold;")
+        self.classify_btn.setStyleSheet("padding: 15px;font-weight: bold;")
         self.classify_btn.clicked.connect(self.run_classification)
         
         self.regress_btn = QPushButton("Predizer Idade")
         self.regress_btn.setEnabled(False)
-        self.regress_btn.setStyleSheet("padding: 15px; font-size: 12pt; font-weight: bold;")
+        self.regress_btn.setStyleSheet("padding: 15px;font-weight: bold;")
         self.regress_btn.clicked.connect(self.run_regression)
         
         button_layout.addWidget(self.segment_btn)
@@ -776,7 +776,7 @@ class VentricleAnalysisGUI(QMainWindow):
         
         # ===== SEÇÃO 1: IMAGENS DE SEGMENTAÇÃO (3 em linha) =====
         images_title = QLabel("Resultados da Segmentação")
-        images_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        images_title.setStyleSheet("font-weight: bold; padding: 10px;")
         content_layout.addWidget(images_title)
         
         images_layout = QHBoxLayout()
@@ -831,24 +831,24 @@ class VentricleAnalysisGUI(QMainWindow):
         
         # ===== SEÇÃO 2: DESCRITORES =====
         desc_title = QLabel("Descritores Morfológicos")
-        desc_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        desc_title.setStyleSheet("font-weight: bold; padding: 10px;")
         content_layout.addWidget(desc_title)
         
         self.descriptors_label = QLabel("Nenhuma segmentação realizada")
         self.descriptors_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
-        self.descriptors_label.setStyleSheet("padding: 15px; border: 1px solid #555; background-color: #2a2a2a;")
+        self.descriptors_label.setStyleSheet("padding: 15px; border: 1px solid #555;")
         self.descriptors_label.setWordWrap(True)
         content_layout.addWidget(self.descriptors_label)
         
         # Separador
         line2 = QFrame()
         line2.setFrameShape(QFrame.HLine)
-        line2.setStyleSheet("background-color: #555;")
+        line2.setStyleSheet("background-color: #777;")
         content_layout.addWidget(line2)
         
         # ===== SEÇÃO 3: SCATTERPLOTS (GRID 5x3) =====
         scatter_title = QLabel("Scatterplots Comparativos (15 gráficos)")
-        scatter_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        scatter_title.setStyleSheet("font-weight: bold; padding: 10px;")
         content_layout.addWidget(scatter_title)
         
         # Container para os scatterplots em grid
@@ -864,7 +864,7 @@ class VentricleAnalysisGUI(QMainWindow):
             
             placeholder = QLabel(f"Gráfico {i+1}\nAguardando segmentação")
             placeholder.setAlignment(Qt.AlignCenter)
-            placeholder.setStyleSheet("border: 1px solid #555; min-height: 200px; background-color: #2a2a2a;")
+            placeholder.setStyleSheet("border: 1px solid #555; min-height: 200px;")
             self.scatter_grid.addWidget(placeholder, row, col)
         
         content_layout.addWidget(scatter_container)
@@ -895,14 +895,14 @@ class VentricleAnalysisGUI(QMainWindow):
         
         # Título
         title = QLabel("Predição de Idade com XGBoost")
-        title.setStyleSheet("font-size: 14pt; font-weight: bold; padding: 15px;")
+        title.setStyleSheet("font-weight: bold; padding: 15px;")
         title.setAlignment(Qt.AlignCenter)
         content_layout.addWidget(title)
         
         # Status do modelo
         self.regressor_status_label = QLabel()
         self.regressor_status_label.setAlignment(Qt.AlignCenter)
-        self.regressor_status_label.setStyleSheet("padding: 10px; border: 1px solid #555; background-color: #2a2a2a;")
+        self.regressor_status_label.setStyleSheet("padding: 10px; border: 1px solid #555;")
         self.update_regressor_status()
         content_layout.addWidget(self.regressor_status_label)
         
@@ -914,12 +914,12 @@ class VentricleAnalysisGUI(QMainWindow):
         
         # Seção: Resultado da Predição
         result_title = QLabel("Idade Predita")
-        result_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        result_title.setStyleSheet("font-weight: bold; padding: 10px;")
         content_layout.addWidget(result_title)
         
         self.regression_result_label = QLabel("Nenhuma predição realizada.\n\nClique em 'Predizer Idade' para começar.")
         self.regression_result_label.setAlignment(Qt.AlignCenter)
-        self.regression_result_label.setStyleSheet("padding: 30px; border: 2px solid #555; background-color: #2a2a2a; font-size: 12pt;")
+        self.regression_result_label.setStyleSheet("padding: 30px; border: 2px solid #555;")
         self.regression_result_label.setMinimumHeight(200)
         content_layout.addWidget(self.regression_result_label)
         
@@ -931,12 +931,12 @@ class VentricleAnalysisGUI(QMainWindow):
         
         # Seção: Informações sobre a predição
         info_title = QLabel("Sobre a Predição")
-        info_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        info_title.setStyleSheet("font-weight: bold; padding: 10px;")
         content_layout.addWidget(info_title)
         
         self.regression_info_label = QLabel()
         self.regression_info_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
-        self.regression_info_label.setStyleSheet("padding: 20px; border: 1px solid #555; background-color: #2a2a2a;")
+        self.regression_info_label.setStyleSheet("padding: 20px; border: 1px solid #555;")
         self.regression_info_label.setWordWrap(True)
         info_text = "<p><b>Como funciona:</b></p>"
         info_text += "<ul>"
@@ -957,12 +957,12 @@ class VentricleAnalysisGUI(QMainWindow):
         
         # Seção: Descritores Usados
         desc_title = QLabel("Descritores Morfológicos Utilizados")
-        desc_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        desc_title.setStyleSheet("font-weight: bold; padding: 10px;")
         content_layout.addWidget(desc_title)
         
         self.regression_descriptors_label = QLabel("Os descritores serão extraídos automaticamente da segmentação.")
         self.regression_descriptors_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
-        self.regression_descriptors_label.setStyleSheet("padding: 15px; border: 1px solid #555; background-color: #2a2a2a;")
+        self.regression_descriptors_label.setStyleSheet("padding: 15px; border: 1px solid #555;")
         self.regression_descriptors_label.setWordWrap(True)
         content_layout.addWidget(self.regression_descriptors_label)
         
@@ -990,14 +990,14 @@ class VentricleAnalysisGUI(QMainWindow):
         
         # Título
         title = QLabel("Classificação com XGBoost")
-        title.setStyleSheet("font-size: 14pt; font-weight: bold; padding: 15px;")
+        title.setStyleSheet("font-weight: bold; padding: 15px;")
         title.setAlignment(Qt.AlignCenter)
         content_layout.addWidget(title)
         
         # Status do modelo
         self.model_status_label = QLabel()
         self.model_status_label.setAlignment(Qt.AlignCenter)
-        self.model_status_label.setStyleSheet("padding: 10px; border: 1px solid #555; background-color: #2a2a2a;")
+        self.model_status_label.setStyleSheet("padding: 10px; border: 1px solid #555;")
         self.update_model_status()
         content_layout.addWidget(self.model_status_label)
         
@@ -1009,12 +1009,12 @@ class VentricleAnalysisGUI(QMainWindow):
         
         # Seção: Resultado da Classificação
         result_title = QLabel("Resultado da Classificação")
-        result_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        result_title.setStyleSheet("font-weight: bold; padding: 10px;")
         content_layout.addWidget(result_title)
         
         self.classification_result_label = QLabel("Nenhuma classificação realizada.\n\nClique em 'Classificar' para começar.")
         self.classification_result_label.setAlignment(Qt.AlignCenter)
-        self.classification_result_label.setStyleSheet("padding: 30px; border: 2px solid #555; background-color: #2a2a2a; font-size: 12pt;")
+        self.classification_result_label.setStyleSheet("padding: 30px; border: 2px solid #555;")
         self.classification_result_label.setMinimumHeight(200)
         content_layout.addWidget(self.classification_result_label)
         
@@ -1026,12 +1026,12 @@ class VentricleAnalysisGUI(QMainWindow):
         
         # Seção: Probabilidades
         prob_title = QLabel("Probabilidades por Classe")
-        prob_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        prob_title.setStyleSheet("font-weight: bold; padding: 10px;")
         content_layout.addWidget(prob_title)
         
         self.probabilities_label = QLabel("Aguardando classificação...")
         self.probabilities_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
-        self.probabilities_label.setStyleSheet("padding: 20px; border: 1px solid #555; background-color: #2a2a2a;")
+        self.probabilities_label.setStyleSheet("padding: 20px; border: 1px solid #555;")
         self.probabilities_label.setWordWrap(True)
         content_layout.addWidget(self.probabilities_label)
         
@@ -1043,12 +1043,12 @@ class VentricleAnalysisGUI(QMainWindow):
         
         # Seção: Descritores Usados
         desc_title = QLabel("Descritores Morfológicos Utilizados")
-        desc_title.setStyleSheet("font-size: 13pt; font-weight: bold; padding: 10px;")
+        desc_title.setStyleSheet("font-weight: bold; padding: 10px;")
         content_layout.addWidget(desc_title)
         
         self.classification_descriptors_label = QLabel("Os descritores serão extraídos automaticamente da segmentação.")
         self.classification_descriptors_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
-        self.classification_descriptors_label.setStyleSheet("padding: 15px; border: 1px solid #555; background-color: #2a2a2a;")
+        self.classification_descriptors_label.setStyleSheet("padding: 15px; border: 1px solid #555;")
         self.classification_descriptors_label.setWordWrap(True)
         content_layout.addWidget(self.classification_descriptors_label)
         
@@ -1074,8 +1074,13 @@ class VentricleAnalysisGUI(QMainWindow):
             file_path = Path(file_path)
             self.current_image_path = file_path
             
+            # Verificar extensão do arquivo
+            file_extension = file_path.suffix.lower()
+            
             # Carregar imagem conforme formato
-            if file_path.suffix in ['.nii', '.gz']:
+            if file_extension in ['.nii', '.gz'] or str(file_path).endswith('.nii.gz'):
+                # NIfTI
+                print(f"Carregando NIfTI: {file_path}")
                 nii_img = nib.load(str(file_path))
                 img_data = nii_img.get_fdata()
                 
@@ -1086,9 +1091,16 @@ class VentricleAnalysisGUI(QMainWindow):
                 else:
                     self.current_image = img_data
                     
-            else:  # PNG ou JPG
-                img = cv2.imread(str(file_path), cv2.IMREAD_GRAYSCALE)
-                self.current_image = img
+            elif file_path.suffix.lower() in ['.png', '.jpg', '.jpeg']:
+
+                img_bytes = np.fromfile(str(file_path), dtype=np.uint8)
+                img = cv2.imdecode(img_bytes, cv2.IMREAD_GRAYSCALE)
+                if img is None:
+                    raise ValueError(f"Não foi possível carregar/decodificar a imagem: {file_path}")
+                self.current_image = img.astype(np.float64)
+            
+            else:
+                raise ValueError(f"Formato não suportado: {file_extension}")
             
             # Normalizar para visualização
             self.normalized_image = self.normalize_image(self.current_image)
@@ -1214,10 +1226,15 @@ class VentricleAnalysisGUI(QMainWindow):
             self.statusBar().showMessage("Segmentando ventrículo...")
             QApplication.processEvents()
             
+            # Verificar extensão do arquivo
+            file_extension = self.current_image_path.suffix.lower()
+            
             # Salvar temporariamente se for PNG/JPG
-            if self.current_image_path.suffix in ['.png', '.jpg', '.jpeg']:
+            if file_extension in ['.png', '.jpg', '.jpeg']:
+                print("Convertendo imagem para formato NIfTI temporário...")
                 temp_nii = Path("temp_image.nii.gz")
-                nii_img = nib.Nifti1Image(self.current_image, np.eye(4))
+                # Garantir que a imagem está em float para o NIfTI
+                nii_img = nib.Nifti1Image(self.current_image.astype(np.float32), np.eye(4))
                 nib.save(nii_img, str(temp_nii))
                 seg_path = temp_nii
             else:
@@ -1246,9 +1263,11 @@ class VentricleAnalysisGUI(QMainWindow):
             
             self.statusBar().showMessage("Segmentação concluída!")
             
-            # Limpar temporário
-            if self.current_image_path.suffix in ['.png', '.jpg', '.jpeg']:
-                temp_nii.unlink(missing_ok=True)
+            # Limpar temporário se foi criado
+            if file_extension in ['.png', '.jpg', '.jpeg']:
+                if temp_nii.exists():
+                    temp_nii.unlink()
+                    print("Arquivo temporário removido.")
                 
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro na segmentação:\n{str(e)}")
@@ -1444,7 +1463,7 @@ class VentricleAnalysisGUI(QMainWindow):
         
         # Confiança
         confidence = probabilities[prediction] * 100
-        result_text += f"<p style='text-align: center; font-size: 14pt;'>Confiança: <b>{confidence:.2f}%</b></p>"
+        result_text += f"<p style='text-align: center;'>Confiança: <b>{confidence:.2f}%</b></p>"
         
         self.classification_result_label.setText(result_text)
         
@@ -1572,7 +1591,7 @@ class VentricleAnalysisGUI(QMainWindow):
             age_range = "Idoso"
             icon = "👵"
         
-        result_text += f"<p style='text-align: center; font-size: 14pt;'>{icon} <b>{age_range}</b></p>"
+        result_text += f"<p style='text-align: center;'>{icon} <b>{age_range}</b></p>"
         
         self.regression_result_label.setText(result_text)
         
@@ -1696,7 +1715,7 @@ class VentricleAnalysisGUI(QMainWindow):
                 col = i % 5
                 label = QLabel(f"Gráfico {i+1}\nErro: {str(e)[:30]}")
                 label.setAlignment(Qt.AlignCenter)
-                label.setStyleSheet("border: 1px solid #555; min-height: 180px; background-color: #2a2a2a;")
+                label.setStyleSheet("border: 1px solid #555; min-height: 180px;")
                 self.scatter_grid.addWidget(label, row, col)
     
     def zoom_scatterplot(self, canvas):
@@ -1781,7 +1800,7 @@ class VentricleAnalysisGUI(QMainWindow):
             col = i % 5
             placeholder = QLabel(f"Gráfico {i+1}\nAguardando segmentação")
             placeholder.setAlignment(Qt.AlignCenter)
-            placeholder.setStyleSheet("border: 1px solid #555; min-height: 200px; background-color: #2a2a2a;")
+            placeholder.setStyleSheet("border: 1px solid #555; min-height: 200px;")
             self.scatter_grid.addWidget(placeholder, row, col)
             
     def open_settings(self):
@@ -1791,96 +1810,135 @@ class VentricleAnalysisGUI(QMainWindow):
         dialog.theme_combo.setCurrentText("Escuro" if self.theme == "dark" else "Claro")
         
         if dialog.exec_() == QDialog.Accepted:
-            self.font_size = dialog.font_spin.value()
-            new_theme = "dark" if dialog.theme_combo.currentText() == "Escuro" else "light"
             
-            if new_theme != self.theme:
-                self.theme = new_theme
-                self.apply_theme()
+            
+            self.font_size = dialog.font_spin.value()
+            self.theme = "dark" if dialog.theme_combo.currentText() == "Escuro" else "light"
+            self.apply_theme()
                 
-            self.apply_font_size()
             
     def apply_theme(self):
         """Aplica tema escuro ou claro"""
+        font_size_pt = self.font_size
+
+        font = QFont()
+        font.setPointSize(self.font_size)
+        QApplication.setFont(font)
+        
         if self.theme == "dark":
-            self.setStyleSheet("""
-                QMainWindow, QWidget {
+            self.setStyleSheet(f"""
+                QMainWindow, QWidget {{
                     background-color: #2b2b2b;
                     color: #ffffff;
-                }
-                QPushButton {
+                    font-size: {font_size_pt}pt;
+                }}
+                QPushButton {{
                     background-color: #3d3d3d;
                     border: 1px solid #555;
                     padding: 8px;
                     border-radius: 4px;
                     color: #ffffff;
-                }
-                QPushButton:hover {
+                    font-size: {font_size_pt}pt;
+                }}
+                QPushButton:hover {{
                     background-color: #4a4a4a;
-                }
-                QPushButton:disabled {
+                }}
+                QPushButton:disabled {{
                     background-color: #2a2a2a;
                     color: #666;
-                }
-                QLabel {
+                }}
+                QLabel {{
                     color: #ffffff;
-                }
-                QGroupBox {
+                    font-size: {font_size_pt}pt;
+                }}
+                QGroupBox {{
                     border: 1px solid #555;
                     margin-top: 10px;
                     padding-top: 10px;
-                }
-                QGroupBox::title {
+                    font-size: {font_size_pt}pt;
+                }}
+                QGroupBox::title {{
                     color: #ffffff;
-                }
-                QTabWidget::pane {
+                }}
+                QTabWidget::pane {{
                     border: 1px solid #555;
-                }
-                QTabBar::tab {
+                }}
+                QTabBar::tab {{
                     background-color: #3d3d3d;
                     color: #ffffff;
                     padding: 10px 20px;
                     border: 1px solid #555;
                     margin-right: 2px;
-                }
-                QTabBar::tab:selected {
+                    font-size: {font_size_pt}pt;
+                }}
+                QTabBar::tab:selected {{
                     background-color: #4a4a4a;
                     border-bottom: 2px solid #0078d7;
-                }
-                QScrollArea {
+                }}
+                QScrollArea {{
                     border: none;
-                }
+                }}
             """)
         else:
-            self.setStyleSheet("""
-                QMainWindow, QWidget {
-                    background-color: #f0f0f0;
-                    color: #000000;
-                }
-                QPushButton {
-                    background-color: #e0e0e0;
-                    border: 1px solid #999;
-                    padding: 8px;
-                    border-radius: 4px;
-                    color: #000000;
-                }
-                QPushButton:hover {
-                    background-color: #d0d0d0;
-                }
-                QPushButton:disabled {
-                    background-color: #f5f5f5;
-                    color: #999;
-                }
-                QLabel {
-                    color: #000000;
-                }
+            self.setStyleSheet(f"""
+                QMainWindow, QWidget {{
+                background-color: #f0f0f0;
+                color: #000000;
+                font-size: {font_size_pt}pt;
+            }}
+            QPushButton {{
+                background-color: #e0e0e0;
+                border: 1px solid #b0b0b0;
+                padding: 8px;
+                border-radius: 4px;
+                color: #000000;
+                font-size: {font_size_pt}pt;
+            }}
+            QPushButton:hover {{
+                background-color: #d0d0d0;
+            }}
+            QPushButton:disabled {{
+                background-color: #f5f5f5;
+                color: #999999;
+            }}
+            QLabel {{
+                color: #000000;
+                font-size: {font_size_pt}pt;
+            }}
+            QGroupBox {{
+                border: 1px solid #b0b0b0;
+                margin-top: 10px;
+                padding-top: 10px;
+                font-size: {font_size_pt}pt;
+            }}
+            QGroupBox::title {{
+                color: #000000;
+            }}
+            QTabWidget::pane {{
+                border: 1px solid #b0b0b0;
+            }}
+            QTabBar::tab {{
+                background-color: #e0e0e0;
+                color: #000000;
+                padding: 10px 20px;
+                border: 1px solid #b0b0b0;
+                margin-right: 2px;
+                font-size: {font_size_pt}pt;
+            }}
+            QTabBar::tab:selected {{
+                background-color: #ffffff;
+                border-bottom: 2px solid #0078d7;
+            }}
+            QScrollArea {{
+                border: none;
+            }}
+
             """)
+    
+        # Forçar atualização
+        self.update()
+        QApplication.processEvents()
             
-    def apply_font_size(self):
-        """Aplica tamanho de fonte"""
-        font = QFont()
-        font.setPointSize(self.font_size)
-        QApplication.setFont(font)
         
     def show_about(self):
         """Mostra diálogo sobre"""
